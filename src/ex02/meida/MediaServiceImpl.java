@@ -1,0 +1,114 @@
+package ex02.meida;
+
+import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Slider;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+
+public class MediaServiceImpl implements MediaService {
+
+	MediaPlayer mediaPlayer;
+	MediaView mediaView;
+	Button btnPlay, btnPause, btnStop;
+	boolean endOfMedia;
+	
+	Label labelTime;
+	Slider sliderVolume;
+	ProgressBar progressBar;
+	ProgressIndicator progressIndicator;
+	
+	@Override
+	public void myStart() {
+		mediaPlayer.play();
+	}
+
+	@Override
+	public void myStop() {
+		mediaPlayer.stop();
+	}
+
+	@Override
+	public void myPause() {
+		mediaPlayer.pause();
+	}
+
+	@Override
+	public void setMedia(Parent root, String mediaName) {
+		setControl(root);
+		//미디어 위치 확인
+		//System.out.println(getClass().getResource(mediaName));
+		Media media = new Media(getClass().getResource(mediaName).toString());	//동영상
+		mediaPlayer = new MediaPlayer(media);
+		
+		mediaView.setMediaPlayer(mediaPlayer);
+		
+		mediaPlayer.setOnReady(new Runnable() {
+			public void run() {
+				btnPlay.setDisable(false);
+				btnStop.setDisable(true);
+				btnPause.setDisable(true);
+				
+				mediaPlayer.currentTimeProperty().addListener((a,b,c)->{
+					// 흐르는 시간/최종시간
+					double progress = mediaPlayer.getCurrentTime().toSeconds()
+							/mediaPlayer.getTotalDuration().toSeconds();
+					progressBar.setProgress(progress);
+					progressIndicator.setProgress(progress);
+					labelTime.setText((int)mediaPlayer.getCurrentTime().toSeconds() 
+							+ "/" + (int)mediaPlayer.getTotalDuration().toSeconds());
+				});
+			}
+		});
+		
+		mediaPlayer.setOnPlaying(() -> {
+			sliderVolume.setValue(50.0);		//동영상 재생 시 소리크기 기본값 설정
+			
+			btnPlay.setDisable(true);
+			btnStop.setDisable(false);
+			btnPause.setDisable(false);
+
+		});
+		
+		mediaPlayer.setOnStopped(()-> {
+			btnPlay.setDisable(false);
+			btnStop.setDisable(true);
+			btnPause.setDisable(true);
+		});
+		
+		mediaPlayer.setOnPaused(() -> {
+			btnPlay.setDisable(false);
+			btnStop.setDisable(false);
+			btnPause.setDisable(true);
+		});
+		
+		mediaPlayer.setOnEndOfMedia(()-> {
+			btnPlay.setDisable(false);
+			btnStop.setDisable(true);
+			btnStop.setDisable(true);
+			myStop();	//완전히 완료시킨 후 재생 포인트가 다시 맨 처음으로 돌아오게하는 메소드
+		});
+	}
+	
+	public void setControl(Parent root) {
+		mediaView = (MediaView)root.lookup("#fxMediaView");
+		btnPlay = (Button)root.lookup("#btnPlay");
+		btnPause = (Button)root.lookup("#btnPause");
+		btnStop = (Button)root.lookup("#btnStop");
+		
+		labelTime = (Label)root.lookup("#labelTime");
+		sliderVolume = (Slider)root.lookup("#sliderVolume");
+		progressBar = (ProgressBar)root.lookup("#progressBar");
+		progressIndicator = (ProgressIndicator)root.lookup("#progressIndicator");
+	}
+
+	@Override
+	public void volumeControl() {
+		mediaPlayer.setVolume(sliderVolume.getValue()/100.0);	//기본 설정값
+	}
+
+}
